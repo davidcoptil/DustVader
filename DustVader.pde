@@ -33,7 +33,11 @@ final int CMD_SUCTION_UP   = 12;
 final int CMD_TEST_SPOT    = 99;
 
 MapView map;
-
+AreasView areas;
+CGMView cgm;
+RobotPose robot;
+int lastCGM = 0;
+int lastPose = 0;
 
 
 void setup() {
@@ -66,7 +70,10 @@ void setup() {
     new Button("SUCTION +", 0.55, 0.89, CMD_SUCTION_UP)
   };
 
-  map = new MapView("http://192.168.0.15:8080", 2);
+  map = new MapView(BASE, 2);
+  areas = new AreasView(BASE, 2);
+  cgm = new CGMView(BASE, 2);
+  robot = new RobotPose(BASE, 2);
 }
 
 void draw() {
@@ -74,12 +81,21 @@ void draw() {
 
   textSize(36);
 
-  map.draw(
-    width * 0.02, // x
-    height * 0.05, // y
-    width * 0.46, // width
-    height * 0.90     // height
-    );
+  map.draw(0, 20, width * 0.85, height * 0.9);
+  areas.draw(map);
+
+  if (millis() - lastCGM > 1000) {
+    cgm.update();
+    lastCGM = millis();
+  }
+
+  if (millis() - lastPose > 150) {
+    robot.update();
+    lastPose = millis();
+  }
+
+  cgm.draw(map);
+  robot.draw(map);
 
 
   for (int i = 0; i < buttons.length; i++) {
