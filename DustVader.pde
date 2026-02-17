@@ -32,8 +32,13 @@ final int CMD_SUCTION_UP   = 12;
 
 final int CMD_TEST_SPOT    = 99;
 
+MapView map;
+
+
+
 void setup() {
-  fullScreen();
+  //fullScreen();
+  size(1000, 2000);
   orientation(PORTRAIT);
   textAlign(CENTER, CENTER);
   textSize(36);
@@ -41,39 +46,51 @@ void setup() {
   buttons = new Button[] {
 
     new Button("CLEAN ALL", 0.05, 0.10, CMD_CLEAN_ALL),
-    new Button("STOP",      0.55, 0.10, CMD_STOP),
+    new Button("STOP", 0.55, 0.10, CMD_STOP),
 
-    new Button("CONTINUE",  0.05, 0.23, CMD_CONTINUE),
-    new Button("GO HOME",   0.55, 0.23, CMD_GO_HOME),
+    new Button("CONTINUE", 0.05, 0.23, CMD_CONTINUE),
+    new Button("GO HOME", 0.55, 0.23, CMD_GO_HOME),
 
-    new Button("EXPLORE",   0.05, 0.36, CMD_EXPLORE),
+    new Button("EXPLORE", 0.05, 0.36, CMD_EXPLORE),
     new Button("TEST SPOT", 0.55, 0.36, CMD_TEST_SPOT),
 
-    new Button("TV ROOM",   0.05, 0.50, CMD_TV),
-    new Button("HALLWAY",   0.55, 0.50, CMD_HALLWAY),
+    new Button("TV ROOM", 0.05, 0.50, CMD_TV),
+    new Button("HALLWAY", 0.55, 0.50, CMD_HALLWAY),
 
-    new Button("BEDROOM",   0.05, 0.63, CMD_BEDROOM),
-    new Button("KITCHEN",   0.55, 0.63, CMD_KITCHEN),
+    new Button("BEDROOM", 0.05, 0.63, CMD_BEDROOM),
+    new Button("KITCHEN", 0.55, 0.63, CMD_KITCHEN),
 
     new Button("WHOLE MAP", 0.05, 0.76, CMD_WHOLE),
 
     new Button("SUCTION -", 0.05, 0.89, CMD_SUCTION_DOWN),
     new Button("SUCTION +", 0.55, 0.89, CMD_SUCTION_UP)
   };
+
+  map = new MapView("http://192.168.0.15:8080", 2);
 }
 
 void draw() {
   background(20);
 
   textSize(36);
-  for (int i = 0; i < buttons.length; i++)
-    buttons[i].draw();
+
+  map.draw(
+    width * 0.02, // x
+    height * 0.05, // y
+    width * 0.46, // width
+    height * 0.90     // height
+    );
+
+
+  for (int i = 0; i < buttons.length; i++) {
+    //buttons[i].draw();
+  }
 }
 
 void mousePressed() {
   for (int i = 0; i < buttons.length; i++) {
     if (buttons[i].hit(mouseX, mouseY)) {
-      execute(buttons[i].cmd);
+      //execute(buttons[i].cmd);
     }
   }
 }
@@ -83,60 +100,60 @@ void execute(int cmd) {
 
   switch (cmd) {
 
-    case CMD_CLEAN_ALL:
-      send("/set/clean_all?cleaning_parameter_set=" + suction);
-      break;
+  case CMD_CLEAN_ALL:
+    send("/set/clean_all?cleaning_parameter_set=" + suction);
+    break;
 
-    case CMD_STOP:
-      send("/set/stop");
-      break;
+  case CMD_STOP:
+    send("/set/stop");
+    break;
 
-    case CMD_CONTINUE:
-      send("/set/continue");
-      break;
+  case CMD_CONTINUE:
+    send("/set/continue");
+    break;
 
-    case CMD_GO_HOME:
-      send("/set/go_home");
-      break;
+  case CMD_GO_HOME:
+    send("/set/go_home");
+    break;
 
-    case CMD_EXPLORE:
-      send("/set/explore");
-      break;
+  case CMD_EXPLORE:
+    send("/set/explore");
+    break;
 
-    case CMD_TV:
-      cleanRoom(4);
-      break;
+  case CMD_TV:
+    cleanRoom(4);
+    break;
 
-    case CMD_HALLWAY:
-      cleanRoom(3);
-      break;
+  case CMD_HALLWAY:
+    cleanRoom(3);
+    break;
 
-    case CMD_BEDROOM:
-      cleanRoom(1);
-      break;
+  case CMD_BEDROOM:
+    cleanRoom(1);
+    break;
 
-    case CMD_KITCHEN:
-      cleanRoom(2);
-      break;
+  case CMD_KITCHEN:
+    cleanRoom(2);
+    break;
 
-    case CMD_WHOLE:
-      send("/set/clean_map?map_id=2&cleaning_parameter_set=" + suction);
-      break;
+  case CMD_WHOLE:
+    send("/set/clean_map?map_id=2&cleaning_parameter_set=" + suction);
+    break;
 
-    case CMD_SUCTION_DOWN:
-      suction = max(0, suction - 1);
-      setSuction();
-      break;
+  case CMD_SUCTION_DOWN:
+    suction = max(0, suction - 1);
+    setSuction();
+    break;
 
-    case CMD_SUCTION_UP:
-      suction = min(4, suction + 1);
-      setSuction();
-      break;
+  case CMD_SUCTION_UP:
+    suction = min(4, suction + 1);
+    setSuction();
+    break;
 
-    case CMD_TEST_SPOT:
-      // EXACT SAME URL AS YOUR BROWSER TEST
-      send("/set/clean_spot?map_id=2&cleaning_parameter_set=4");
-      break;
+  case CMD_TEST_SPOT:
+    // EXACT SAME URL AS YOUR BROWSER TEST
+    send("/set/clean_spot?map_id=2&cleaning_parameter_set=4");
+    break;
   }
 }
 
@@ -163,20 +180,22 @@ void send(final String path) {
         println("HTTP RESPONSE: " + code);
 
         conn.disconnect();
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         lastResult = "ERROR";
         println("ERROR:");
         e.printStackTrace();
       }
     }
-  }).start();
+  }
+  ).start();
 }
 
 // ---------- HELPERS ----------
 void cleanRoom(int areaId) {
   send("/set/clean_map?map_id=" + mapId +
-       "&area_ids=" + areaId +
-       "&cleaning_parameter_set=" + suction);
+    "&area_ids=" + areaId +
+    "&cleaning_parameter_set=" + suction);
 }
 
 void setSuction() {
@@ -215,6 +234,6 @@ class Button {
 
   boolean hit(float mx, float my) {
     return mx > width*x && mx < width*(x+w) &&
-           my > height*y && my < height*(y+h);
+      my > height*y && my < height*(y+h);
   }
 }
