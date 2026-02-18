@@ -33,14 +33,13 @@ class RobotPose {
 
           float x = j.getFloat("x1");
           float y = j.getFloat("y1");
-          float h = j.getFloat("heading");
-
-          // millidegrees → radians
-          float t = h / 1000.0 * PI / 180.0;
-
+          float h = j.getFloat("heading"); // raw robot heading
+          
+          float t = h * -PI / 6000.0;       // map robot units → radians
+          
           newX = x;
           newY = y;
-          newTheta = t;
+          newTheta = t + HALF_PI;
         }
         catch (Exception e) {
           println("Robot fetch failed: " + e);
@@ -74,13 +73,16 @@ class RobotPose {
       offsetComputed = true;
     }
 
-    // Rotate coordinates 90° to match map orientation
+    // Map coordinate transform
     float screenX = map.sx(pos.y) + offsetX;
     float screenY = map.sy(-pos.x) + offsetY;
 
     pushMatrix();
     translate(screenX, screenY);
-    rotate(theta - HALF_PI); // rotate heading to match
+
+    // Apply heading rotation in **screen space**
+    rotate(theta);
+    println(theta);
 
     fill(255, 0, 0);
     noStroke();
@@ -88,7 +90,7 @@ class RobotPose {
 
     stroke(255);
     strokeWeight(2);
-    line(0, 0, s, 0);
+    line(0, 0, s, 0);  // heading line
     popMatrix();
   }
 }
