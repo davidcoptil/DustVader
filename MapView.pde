@@ -74,13 +74,15 @@ class MapView {
   // Call THIS from your main draw()
   void draw(float x, float y, float w, float h) {
     if (!loaded) return;
-
+    
+    pushStyle();
     pushMatrix();
     clip((int)x, (int)y, (int)w, (int)h);
     computeTransform(x, y, w, h);
     render();
-    noClip();
+    //noClip();
     popMatrix();
+    popStyle();
   }
 
   // ---------- TRANSFORM ----------
