@@ -78,8 +78,8 @@ void draw(MapView map) {
         float wy = lly + y * resolution;
 
         // Swap axes & flip X to match robot orientation
-        float sx = map.sx(wy) + offsetX;   // wy → screen X
-        float sy = map.sy(-wx) + offsetY;  // -wx → screen Y
+        float sx = map.sx(wx);// + offsetX;   // wy → screen X
+        float sy = map.sy(wy);// + offsetY;  // -wx → screen Y
 
         float s = resolution * map.scale;
 

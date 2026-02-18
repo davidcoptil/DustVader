@@ -5,6 +5,7 @@ String BASE = "http://192.168.0.15:8080";
 
 int suction = 3;
 int mapId = 2;
+String MAP_ARG;
 
 Button[] buttons;
 
@@ -20,12 +21,18 @@ float MAP_H;
 float BTN_Y;
 float BTN_H;
 
+// =======================================================
+// SETUP
+// =======================================================
+
 void setup() {
   fullScreen();
   orientation(PORTRAIT);
 
   textAlign(CENTER, CENTER);
   textSize(32);
+
+  MAP_ARG = "&map_id=" + mapId;
 
   MAP_H = height * 0.5;
   BTN_Y = MAP_H;
@@ -39,23 +46,25 @@ void setup() {
   createButtons();
 }
 
+// =======================================================
+// DRAW
+// =======================================================
+
 void draw() {
   background(20);
 
   // ================= UI (BOTTOM HALF) =================
-  // NO clip(), NO noClip(), NO transforms
-
   fill(30);
   rect(0, height * 0.5, width, height * 0.5);
-  for (int i = 0; i < buttons.length; i++) {
-    buttons[i].draw();
+
+  for (Button b : buttons) {
+    b.draw();
   }
 
   // ================= MAP (TOP HALF) =================
   pushMatrix();
   pushStyle();
 
-  // Clip ONLY the map area
   clip(0, 0, width, height * 0.5);
 
   map.draw(0, 0, width, height * 0.5);
@@ -70,14 +79,18 @@ void draw() {
     robot.updateAsync();
     lastPose = millis();
   }
-  
+
   robot.updateFrame();
   robot.draw(map);
   cgm.draw(map);
 
   popStyle();
-  popMatrix();   // ← THIS AUTOMATICALLY REMOVES CLIP (ANDROID SAFE)
+  popMatrix();
 }
+
+// =======================================================
+// INPUT
+// =======================================================
 
 void mousePressed() {
   for (Button b : buttons) {
@@ -87,8 +100,9 @@ void mousePressed() {
     }
   }
 }
+
 // =======================================================
-// BUTTON LAYOUT (BOTTOM HALF)
+// BUTTONS
 // =======================================================
 
 void createButtons() {
@@ -123,8 +137,9 @@ final int CMD_TEST_SPOT    = 99;
 
 void execute(int cmd) {
   switch (cmd) {
+
   case CMD_CLEAN_ALL:
-    send("/set/clean_all?cleaning_parameter_set=" + suction);
+    send("/set/clean_all?cleaning_parameter_set=" + suction + "&map_id=" + mapId);
     break;
 
   case CMD_STOP:
@@ -140,7 +155,8 @@ void execute(int cmd) {
     break;
 
   case CMD_EXPLORE:
-    send("/set/explore");
+    // intentionally disabled
+    println("EXPLORE disabled to avoid remapping");
     break;
 
   case CMD_SUCTION_DOWN:
@@ -154,13 +170,14 @@ void execute(int cmd) {
     break;
 
   case CMD_TEST_SPOT:
-    send("/set/clean_spot?map_id=2&cleaning_parameter_set=4");
+    send("/set/clean_spot?cleaning_parameter_set=4&map_id=" + mapId);
     break;
   }
 }
 
+
 // =======================================================
-// HTTP (ANDROID SAFE)
+// HTTP
 // =======================================================
 
 void send(final String path) {
@@ -183,8 +200,7 @@ void send(final String path) {
         e.printStackTrace();
       }
     }
-  }
-  ).start();
+  }).start();
 }
 
 void setSuction() {
@@ -229,6 +245,6 @@ class Button {
     float y = BTN_Y + row * bh;
 
     return mx > x && mx < x + bw &&
-      my > y && my < y + bh;
+           my > y && my < y + bh;
   }
 }

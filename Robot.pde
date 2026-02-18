@@ -39,7 +39,7 @@ class RobotPose {
           
           newX = x;
           newY = y;
-          newTheta = t + HALF_PI;
+          newTheta = t;
         }
         catch (Exception e) {
           println("Robot fetch failed: " + e);
@@ -58,7 +58,7 @@ class RobotPose {
 
   // ---------- DRAW ----------
   void draw(MapView map) {
-    float s = 20; // robot size in pixels
+    float s = 40; // robot size in pixels
 
     if (!offsetComputed && map.loaded && map.dockPos != null) {
       float baseScreenX = map.sx(0);
@@ -74,8 +74,8 @@ class RobotPose {
     }
 
     // Map coordinate transform
-    float screenX = map.sx(pos.y) + offsetX;
-    float screenY = map.sy(-pos.x) + offsetY;
+    float screenX = map.sx(pos.x);// + offsetX;
+    float screenY = map.sy(pos.y);// + offsetY;
 
     pushMatrix();
     translate(screenX, screenY);
@@ -90,7 +90,7 @@ class RobotPose {
 
     stroke(255);
     strokeWeight(2);
-    line(0, 0, s, 0);  // heading line
+    line(0, 0, 40, 0);  // heading line
     popMatrix();
   }
 }
