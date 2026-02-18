@@ -67,12 +67,13 @@ void draw() {
   }
 
   if (millis() - lastPose > 150) {
-    robot.update();
+    robot.updateAsync();
     lastPose = millis();
   }
-
-  cgm.draw(map);
+  
+  robot.updateFrame();
   robot.draw(map);
+  cgm.draw(map);
 
   popStyle();
   popMatrix();   // ← THIS AUTOMATICALLY REMOVES CLIP (ANDROID SAFE)

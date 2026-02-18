@@ -1,44 +1,94 @@
 class RobotPose {
 
-  PVector pos = new PVector();
-  float theta;
+  PVector pos = new PVector();   // current robot position
+  float theta = 0;               // heading in radians
+
   String baseUrl;
   int mapId;
+
+  volatile float newX, newY, newTheta;
+
+  // AUTOMATIC OFFSET (computed once)
+  boolean offsetComputed = false;
+  float offsetX = 0;
+  float offsetY = 0;
 
   RobotPose(String baseUrl, int mapId) {
     this.baseUrl = baseUrl;
     this.mapId = mapId;
+
+    newX = pos.x;
+    newY = pos.y;
+    newTheta = theta;
   }
 
-  void update() {
-    try {
-      JSONObject j = parseJSONObject(
-        join(loadStrings(baseUrl + "/get/rob_pose"), "")
-      );
+  void updateAsync() {
+    new Thread(new Runnable() {
+      public void run() {
+        try {
+          String jsonStr = join(loadStrings(baseUrl + "/get/rob_pose"), "");
+          JSONObject j = parseJSONObject(jsonStr);
 
-      if (j.getInt("map_id") != mapId) return;
+          if (!j.getBoolean("valid")) return;
 
-      pos.x = j.getFloat("x1");
-      pos.y = j.getFloat("y1");
-      theta = j.getFloat("theta") / 1000.0; // milliradians → radians
+          float x = j.getFloat("x1");
+          float y = j.getFloat("y1");
+          float h = j.getFloat("heading");
 
-    } catch (Exception e) {
-      println("Robot pose fetch failed");
+          // millidegrees → radians
+          float t = h / 1000.0 * PI / 180.0;
+
+          newX = x;
+          newY = y;
+          newTheta = t;
+        }
+        catch (Exception e) {
+          println("Robot fetch failed: " + e);
+        }
+      }
     }
+    ).start();
   }
 
+  // ---------- UPDATE FRAME ----------
+  void updateFrame() {
+    pos.x = newX;
+    pos.y = newY;
+    theta = newTheta;
+  }
+
+  // ---------- DRAW ----------
   void draw(MapView map) {
-    float x = map.sx(pos.x);
-    float y = map.sy(pos.y);
+    float s = 20; // robot size in pixels
+
+    if (!offsetComputed && map.loaded && map.dockPos != null) {
+      float baseScreenX = map.sx(0);
+      float baseScreenY = map.sy(0);
+
+      float dockScreenX = map.sx(map.dockPos.x);
+      float dockScreenY = map.sy(map.dockPos.y);
+
+      offsetX = dockScreenX - baseScreenX;
+      offsetY = dockScreenY - baseScreenY;
+
+      offsetComputed = true;
+    }
+
+    // Rotate coordinates 90° to match map orientation
+    float screenX = map.sx(pos.y) + offsetX;
+    float screenY = map.sy(-pos.x) + offsetY;
 
     pushMatrix();
-    translate(x, y);
-    rotate(-theta);
+    translate(screenX, screenY);
+    rotate(theta - HALF_PI); // rotate heading to match
+
     fill(255, 0, 0);
     noStroke();
-    ellipse(0, 0, 14, 14);
+    ellipse(0, 0, s, s);
+
     stroke(255);
-    line(0, 0, 12, 0);
+    strokeWeight(2);
+    line(0, 0, s, 0);
     popMatrix();
   }
 }
