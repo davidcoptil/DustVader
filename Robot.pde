@@ -82,7 +82,6 @@ class RobotPose {
 
     // Apply heading rotation in **screen space**
     rotate(theta);
-    println(theta);
 
     fill(255, 0, 0);
     noStroke();

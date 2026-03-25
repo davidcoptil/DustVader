@@ -1,11 +1,9 @@
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-String BASE = "http://192.168.0.15:8080";
+String BASE = "http://192.168.1.15:8080";
 
-int suction = 3;
 int mapId = 2;
-String MAP_ARG;
 
 Button[] buttons;
 
@@ -21,10 +19,6 @@ float MAP_H;
 float BTN_Y;
 float BTN_H;
 
-// =======================================================
-// SETUP
-// =======================================================
-
 void setup() {
   fullScreen();
   orientation(PORTRAIT);
@@ -32,36 +26,22 @@ void setup() {
   textAlign(CENTER, CENTER);
   textSize(32);
 
-  MAP_ARG = "&map_id=" + mapId;
-
   MAP_H = height * 0.5;
   BTN_Y = MAP_H;
   BTN_H = height - MAP_H;
 
-  map   = new MapView(BASE, mapId);
-  areas = new AreasView(BASE, mapId);
-  cgm   = new CGMView(BASE, mapId);
-  robot = new RobotPose(BASE, mapId);
-
+  resetMap(2);
   createButtons();
 }
-
-// =======================================================
-// DRAW
-// =======================================================
 
 void draw() {
   background(20);
 
-  // ================= UI (BOTTOM HALF) =================
   fill(30);
   rect(0, height * 0.5, width, height * 0.5);
 
-  for (Button b : buttons) {
-    b.draw();
-  }
+  for (Button b : buttons) b.draw();
 
-  // ================= MAP (TOP HALF) =================
   pushMatrix();
   pushStyle();
 
@@ -88,58 +68,50 @@ void draw() {
   popMatrix();
 }
 
-// =======================================================
-// INPUT
-// =======================================================
-
 void mousePressed() {
-  for (Button b : buttons) {
-    if (b.hit(mouseX, mouseY)) {
-      println("Button pressed: " + b.label);
+  for (Button b : buttons)
+    if (b.hit(mouseX, mouseY))
       execute(b.cmd);
-    }
-  }
 }
-
-// =======================================================
-// BUTTONS
-// =======================================================
 
 void createButtons() {
   buttons = new Button[] {
 
-    new Button("CLEAN ALL", 0, 0, CMD_CLEAN_ALL),
-    new Button("STOP", 1, 0, CMD_STOP),
+    new Button("CLEAN HOUSE", 0, 0, CMD_CLEAN_HOUSE),
+    new Button("CLEAN LIVING", 1, 0, CMD_CLEAN_LIVING),
 
-    new Button("CONTINUE", 0, 1, CMD_CONTINUE),
-    new Button("GO HOME", 1, 1, CMD_GO_HOME),
+    new Button("STOP", 0, 1, CMD_STOP),
+    new Button("CONTINUE", 1, 1, CMD_CONTINUE),
 
-    new Button("EXPLORE", 0, 2, CMD_EXPLORE),
-    new Button("TEST SPOT", 1, 2, CMD_TEST_SPOT),
+    new Button("INTENSIVE", 0, 2, CMD_INTENSIVE),
+    new Button("SILENT", 1, 2, CMD_SILENT),
 
-    new Button("SUCTION -", 0, 3, CMD_SUCTION_DOWN),
-    new Button("SUCTION +", 1, 3, CMD_SUCTION_UP)
+    new Button("NORMAL SPEED", 0, 3, CMD_SPEED_NORMAL),
+    new Button("HIGH SPEED", 1, 3, CMD_SPEED_HIGH)
   };
 }
 
-// =======================================================
-// COMMANDS
-// =======================================================
-
-final int CMD_CLEAN_ALL    = 1;
-final int CMD_STOP         = 2;
-final int CMD_CONTINUE     = 3;
-final int CMD_GO_HOME      = 4;
-final int CMD_EXPLORE      = 5;
-final int CMD_SUCTION_DOWN = 11;
-final int CMD_SUCTION_UP   = 12;
-final int CMD_TEST_SPOT    = 99;
+final int CMD_CLEAN_HOUSE  = 1;
+final int CMD_CLEAN_LIVING = 2;
+final int CMD_STOP         = 3;
+final int CMD_CONTINUE     = 4;
+final int CMD_INTENSIVE    = 5;
+final int CMD_SILENT       = 6;
+final int CMD_SPEED_NORMAL = 7;
+final int CMD_SPEED_HIGH   = 8;
 
 void execute(int cmd) {
+
   switch (cmd) {
 
-  case CMD_CLEAN_ALL:
-    send("/set/clean_all?cleaning_parameter_set=" + suction + "&map_id=" + mapId);
+  case CMD_CLEAN_HOUSE:
+    resetMap(2);
+    send("/set/clean_map?map_id=2&cleaning_parameter_set=3");
+    break;
+
+  case CMD_CLEAN_LIVING:
+    resetMap(55);
+    send("/set/clean_map?map_id=55&cleaning_parameter_set=3");
     break;
 
   case CMD_STOP:
@@ -150,39 +122,34 @@ void execute(int cmd) {
     send("/set/continue");
     break;
 
-  case CMD_GO_HOME:
-    send("/set/go_home");
+  case CMD_INTENSIVE:
+    send("/set/switch_cleaning_parameter_set?cleaning_parameter_set=3");
     break;
 
-  case CMD_EXPLORE:
-    // intentionally disabled
-    println("EXPLORE disabled to avoid remapping");
+  case CMD_SILENT:
+    send("/set/switch_cleaning_parameter_set?cleaning_parameter_set=2");
     break;
 
-  case CMD_SUCTION_DOWN:
-    suction = max(0, suction - 1);
-    setSuction();
+  case CMD_SPEED_NORMAL:
+    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A12800%7D%7D%7D%7D%7D");
     break;
 
-  case CMD_SUCTION_UP:
-    suction = min(4, suction + 1);
-    setSuction();
-    break;
-
-  case CMD_TEST_SPOT:
-    send("/set/clean_spot?cleaning_parameter_set=4&map_id=" + mapId);
+  case CMD_SPEED_HIGH:
+    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A20480%7D%7D%7D%7D%7D");
     break;
   }
 }
 
-
-// =======================================================
-// HTTP
-// =======================================================
+void resetMap(int newMapId) {
+  mapId = newMapId;
+  map   = new MapView(BASE, mapId);
+  areas = new AreasView(BASE, mapId);
+  cgm   = new CGMView(BASE, mapId);
+  robot = new RobotPose(BASE, mapId);
+}
 
 void send(final String path) {
   final String urlStr = BASE + path;
-  println("SEND: " + urlStr);
 
   new Thread(new Runnable() {
     public void run() {
@@ -203,48 +170,40 @@ void send(final String path) {
   }).start();
 }
 
-void setSuction() {
-  send("/set/switch_cleaning_parameter_set?cleaning_parameter_set=" + suction);
-}
-
-// =======================================================
-// BUTTON CLASS
-// =======================================================
-
 class Button {
-  String label;
-  int col, row;
-  int cmd;
 
-  Button(String label, int col, int row, int cmd) {
-    this.label = label;
-    this.col = col;
-    this.row = row;
-    this.cmd = cmd;
+  String label;
+  int col,row,cmd;
+
+  Button(String l,int c,int r,int cmd){
+    label=l;
+    col=c;
+    row=r;
+    this.cmd=cmd;
   }
 
   void draw() {
-    float bw = width * 0.5;
-    float bh = BTN_H / 4;
+    float bw = width*0.5;
+    float bh = BTN_H/4;
 
-    float x = col * bw;
-    float y = BTN_Y + row * bh;
+    float x = col*bw;
+    float y = BTN_Y+row*bh;
 
     fill(70);
-    rect(x + 10, y + 10, bw - 20, bh - 20, 20);
+    rect(x+10,y+10,bw-20,bh-20,20);
 
     fill(255);
-    text(label, x + bw / 2, y + bh / 2);
+    text(label,x+bw/2,y+bh/2);
   }
 
-  boolean hit(float mx, float my) {
-    float bw = width * 0.5;
-    float bh = BTN_H / 4;
+  boolean hit(float mx,float my) {
+    float bw = width*0.5;
+    float bh = BTN_H/4;
 
-    float x = col * bw;
-    float y = BTN_Y + row * bh;
+    float x = col*bw;
+    float y = BTN_Y+row*bh;
 
-    return mx > x && mx < x + bw &&
-           my > y && my < y + bh;
+    return mx>x && mx<x+bw &&
+           my>y && my<y+bh;
   }
 }
