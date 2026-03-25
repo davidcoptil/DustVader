@@ -152,6 +152,9 @@ void mousePressed() {
   for (Button b : buttons)
     if (b.hit(mouseX, mouseY))
       execute(b.cmd);
+
+  // toggle area selection on map click
+  areas.handleClick(mouseX, mouseY, map);
 }
 
 
@@ -233,6 +236,19 @@ void execute(int cmd) {
     send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A12800%7D%7D%7D%7D%7D");
     break;
 
+  case 99:
+    ArrayList<Integer> selRooms = areas.getSelectedRooms();
+    if (selRooms.size() > 0) {
+      String roomList = "";
+      for (int r : selRooms) roomList += r + ",";
+      roomList = roomList.substring(0, roomList.length()-1);
+      println("Cleaning selected rooms: " + roomList);
+      //send("/set/clean_rooms?map_id=" + mapId + "&rooms=" + roomList);
+    } else {
+      println("No rooms selected!");
+    }
+    break;
+
   case CMD_SPEED_HIGH:
     send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A20480%7D%7D%7D%7D%7D");
     break;
@@ -280,14 +296,13 @@ void send(final String path) {
 
         conn.getResponseCode();
         conn.disconnect();
-
-      } catch (Exception e) {
+      }
+      catch (Exception e) {
         e.printStackTrace();
       }
-
     }
-
-  }).start();
+  }
+  ).start();
 }
 
 
@@ -299,9 +314,9 @@ void send(final String path) {
 class Button {
 
   String label;
-  int col,row,cmd;
+  int col, row, cmd;
 
-  Button(String l,int c,int r,int cmd){
+  Button(String l, int c, int r, int cmd) {
     label=l;
     col=c;
     row=r;
@@ -323,7 +338,7 @@ class Button {
     text(label, cx, cy);
   }
 
-  boolean hit(float mx,float my) {
+  boolean hit(float mx, float my) {
 
     float cx = BTN_START_X + col * BTN_SPACING_X;
     float cy = BTN_START_Y + row * BTN_SPACING_Y;
@@ -332,6 +347,6 @@ class Button {
     float y = cy - BTN_H_BTN/2;
 
     return mx>x && mx<x+BTN_W &&
-           my>y && my<y+BTN_H_BTN;
+      my>y && my<y+BTN_H_BTN;
   }
 }

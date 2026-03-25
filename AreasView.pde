@@ -3,6 +3,7 @@ class AreasView {
   class Area {
     int id;
     ArrayList<PVector> pts = new ArrayList<PVector>();
+    boolean selected = false; // NEW: track selection
   }
 
   ArrayList<Area> areas = new ArrayList<Area>();
@@ -47,13 +48,18 @@ class AreasView {
   }
 
   void drawArea(MapView map, Area a) {
-
     // pastel color derived from ID (stable)
     randomSeed(a.id * 9973);
-    fill(100 + random(100), 100 + random(100), 100 + random(100), 90);
-    stroke(0, 160, 0);
-    strokeWeight(2);
 
+    if (a.selected) {
+      fill(255, 150, 0, 150); // HIGHLIGHT selected
+      stroke(255, 100, 0);
+    } else {
+      fill(100 + random(100), 100 + random(100), 100 + random(100), 90);
+      stroke(0, 160, 0);
+    }
+
+    strokeWeight(2);
     beginShape();
     for (PVector p : a.pts) {
       vertex(map.sx(p.x), map.sy(p.y));
@@ -74,5 +80,42 @@ class AreasView {
       y += p.y;
     }
     return new PVector(x / pts.size(), y / pts.size());
+  }
+
+  // ---------------- NEW: handle click to toggle selection ----------------
+  void handleClick(float mx, float my, MapView map) {
+    for (Area a : areas) {
+      if (pointInPolygon(mx, my, a, map)) {
+        a.selected = !a.selected;
+        break; // toggle only one at a time
+      }
+    }
+  }
+
+  // Simple point-in-polygon check using ray casting
+  boolean pointInPolygon(float px, float py, Area a, MapView map) {
+    int crossings = 0;
+    int count = a.pts.size();
+    for (int i = 0; i < count; i++) {
+      PVector p1 = a.pts.get(i);
+      PVector p2 = a.pts.get((i + 1) % count);
+      float x1 = map.sx(p1.x), y1 = map.sy(p1.y);
+      float x2 = map.sx(p2.x), y2 = map.sy(p2.y);
+
+      if (((y1 > py) != (y2 > py)) &&
+          (px < (x2 - x1) * (py - y1) / (y2 - y1) + x1)) {
+        crossings++;
+      }
+    }
+    return (crossings % 2 == 1);
+  }
+
+  // ---------------- NEW: get selected room IDs ----------------
+  ArrayList<Integer> getSelectedRooms() {
+    ArrayList<Integer> sel = new ArrayList<Integer>();
+    for (Area a : areas) {
+      if (a.selected) sel.add(a.id);
+    }
+    return sel;
   }
 }
