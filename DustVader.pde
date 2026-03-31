@@ -3,8 +3,11 @@ import java.net.URL;
 
 String BASE = "http://192.168.1.15:8080";
 
+// -------- MAP STATE --------
 int mapId = 2;
+int selectedMapId = 2;
 
+// -------- MODULES --------
 MapView map;
 AreasView areas;
 CGMView cgm;
@@ -13,16 +16,32 @@ RobotPose robot;
 int lastCGM = 0;
 int lastPose = 0;
 
+// -------- STATUS --------
+int batteryLevel = -1;
+boolean isCharging = false;
+int lastStatus = 0;
 
-// ================= USER LAYOUT PARAMETERS =================
 
-// map takes this part of screen
+// ================= LAYOUT =================
+
+// map
+float MAP_START_RATIO  = 0.0;
 float MAP_HEIGHT_RATIO = 0.4;
 
+// info
+float INFO_START_RATIO  = 0.4;
+float INFO_HEIGHT_RATIO = 0.1;
 
-// ================= CALCULATED VALUES =================
+// buttons
+float BTN_AREA_START_RATIO  = 0.5;
+float BTN_AREA_HEIGHT_RATIO = 0.5;
+
+
+// ================= CALCULATED =================
 
 float MAP_H;
+float INFO_Y, INFO_H;
+float BTN_AREA_Y, BTN_AREA_H;
 
 
 // =======================================================
@@ -37,13 +56,19 @@ void setup() {
   textAlign(CENTER, CENTER);
   textSize(32);
 
-  // ----- map area -----
   MAP_H = height * MAP_HEIGHT_RATIO;
 
-  resetMap(2);
+  INFO_Y = height * INFO_START_RATIO;
+  INFO_H = height * INFO_HEIGHT_RATIO;
 
-  // init buttons (NEW)
-  ButtonsInit();
+  BTN_AREA_Y = height * BTN_AREA_START_RATIO;
+  BTN_AREA_H = height * BTN_AREA_HEIGHT_RATIO;
+
+  resetMap(selectedMapId);
+
+  ButtonsInit(INFO_Y, INFO_H, BTN_AREA_Y, BTN_AREA_H);
+
+  updateStatus(); // initial fetch
 }
 
 
@@ -53,13 +78,17 @@ void setup() {
 
 void draw() {
 
-  background(20);
+  background(15);
 
-  // draw buttons (NEW)
+  // ---- STATUS UPDATE (5s) ----
+  if (millis() - lastStatus > 5000) {
+    updateStatus();
+    lastStatus = millis();
+  }
+
   ButtonsDraw();
 
-
-  // ----- MAP AREA -----
+  // ---- MAP ----
   pushMatrix();
   pushStyle();
 
@@ -93,26 +122,50 @@ void draw() {
 
 void mousePressed() {
 
-  // buttons (NEW)
-  ButtonsHandleClick(mouseX, mouseY);
-
-  // map interaction
-  areas.handleClick(mouseX, mouseY, map);
+  if (!ButtonsHandleClick(mouseX, mouseY)) {
+    areas.handleClick(mouseX, mouseY, map);
+  }
 }
 
 
 // =======================================================
-// COMMAND IDs
+// STATUS
 // =======================================================
 
-final int CMD_CLEAN_HOUSE  = 1;
-final int CMD_CLEAN_LIVING = 2;
+void updateStatus() {
+
+  try {
+    String url = BASE + "/get/status";
+    JSONObject json = parseJSONObject(join(loadStrings(url), ""));
+
+    if (json != null) {
+      batteryLevel = json.getInt("battery_level");
+
+      String charging = json.getString("charging");
+      isCharging = charging.equals("charging");
+    }
+
+  } catch (Exception e) {
+    println("Status read failed");
+  }
+}
+
+
+// =======================================================
+// COMMANDS
+// =======================================================
+
+final int CMD_CLEAN_ALL    = 1;
+final int CMD_CLEAN_ROOMS  = 2;
 final int CMD_STOP         = 3;
 final int CMD_CONTINUE     = 4;
 final int CMD_INTENSIVE    = 5;
 final int CMD_SILENT       = 6;
 final int CMD_SPEED_NORMAL = 7;
 final int CMD_SPEED_HIGH   = 8;
+
+final int CMD_MAP_HOUSE  = 100;
+final int CMD_MAP_LIVING = 101;
 
 
 // =======================================================
@@ -123,14 +176,35 @@ void execute(int cmd) {
 
   switch (cmd) {
 
-  case CMD_CLEAN_HOUSE:
-    resetMap(2);
-    send("/set/clean_map?map_id=2&cleaning_parameter_set=3");
+  case CMD_MAP_HOUSE:
+    selectedMapId = 2;
+    resetMap(selectedMapId);
     break;
 
-  case CMD_CLEAN_LIVING:
-    resetMap(55);
-    send("/set/clean_map?map_id=55&cleaning_parameter_set=3");
+  case CMD_MAP_LIVING:
+    selectedMapId = 55;
+    resetMap(selectedMapId);
+    break;
+
+  case CMD_CLEAN_ALL:
+    send("/set/clean_map?map_id=" + selectedMapId + "&cleaning_parameter_set=3");
+    break;
+
+  case CMD_CLEAN_ROOMS:
+
+    ArrayList<Integer> selRooms = areas.getSelectedRooms();
+
+    if (selRooms.size() > 0) {
+
+      String roomList = "";
+      for (int r : selRooms) roomList += r + ",";
+      roomList = roomList.substring(0, roomList.length()-1);
+
+      send("/set/clean_rooms?map_id=" + selectedMapId + "&rooms=" + roomList);
+
+    } else {
+      println("No rooms selected!");
+    }
     break;
 
   case CMD_STOP:
@@ -150,24 +224,11 @@ void execute(int cmd) {
     break;
 
   case CMD_SPEED_NORMAL:
-    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A12800%7D%7D%7D%7D%7D");
+    send("/set/configurable_parameters?params=...");
     break;
 
   case CMD_SPEED_HIGH:
-    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A20480%7D%7D%7D%7D%7D");
-    break;
-
-  case 99:
-    ArrayList<Integer> selRooms = areas.getSelectedRooms();
-    if (selRooms.size() > 0) {
-      String roomList = "";
-      for (int r : selRooms) roomList += r + ",";
-      roomList = roomList.substring(0, roomList.length()-1);
-      println("Cleaning selected rooms: " + roomList);
-      //send("/set/clean_rooms?map_id=" + mapId + "&rooms=" + roomList);
-    } else {
-      println("No rooms selected!");
-    }
+    send("/set/configurable_parameters?params=...");
     break;
   }
 }
@@ -196,25 +257,17 @@ void send(final String path) {
 
   final String urlStr = BASE + path;
 
-  new Thread(new Runnable() {
+  new Thread(() -> {
+    try {
+      HttpURLConnection conn =
+        (HttpURLConnection) new URL(urlStr).openConnection();
 
-    public void run() {
+      conn.setRequestMethod("GET");
+      conn.getResponseCode();
+      conn.disconnect();
 
-      try {
-
-        HttpURLConnection conn =
-          (HttpURLConnection) new URL(urlStr).openConnection();
-
-        conn.setRequestMethod("GET");
-        conn.setConnectTimeout(4000);
-        conn.setReadTimeout(4000);
-
-        conn.getResponseCode();
-        conn.disconnect();
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-      }
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }).start();
 }
