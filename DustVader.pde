@@ -22,13 +22,13 @@ boolean isCharging = false;
 int lastStatus = 0;
 
 
-// ================= LAYOUT =================
+// ================= USER LAYOUT PARAMETERS =================
 
 // map
 float MAP_START_RATIO  = 0.0;
 float MAP_HEIGHT_RATIO = 0.4;
 
-// info
+// info bar
 float INFO_START_RATIO  = 0.4;
 float INFO_HEIGHT_RATIO = 0.1;
 
@@ -37,10 +37,12 @@ float BTN_AREA_START_RATIO  = 0.5;
 float BTN_AREA_HEIGHT_RATIO = 0.5;
 
 
-// ================= CALCULATED =================
+// ================= CALCULATED VALUES =================
 
-float MAP_H;
+float MAP_Y, MAP_H;
+
 float INFO_Y, INFO_H;
+
 float BTN_AREA_Y, BTN_AREA_H;
 
 
@@ -56,6 +58,8 @@ void setup() {
   textAlign(CENTER, CENTER);
   textSize(32);
 
+  // ---- compute layout ----
+  MAP_Y = height * MAP_START_RATIO;
   MAP_H = height * MAP_HEIGHT_RATIO;
 
   INFO_Y = height * INFO_START_RATIO;
@@ -66,9 +70,8 @@ void setup() {
 
   resetMap(selectedMapId);
 
+  // pass layout to buttons
   ButtonsInit(INFO_Y, INFO_H, BTN_AREA_Y, BTN_AREA_H);
-
-  updateStatus(); // initial fetch
 }
 
 
@@ -137,22 +140,19 @@ void updateStatus() {
   try {
     String url = BASE + "/get/status";
     JSONObject json = parseJSONObject(join(loadStrings(url), ""));
+    batteryLevel = json.getInt("battery_level");
+    String charging = json.getString("charging");
 
-    if (json != null) {
-      batteryLevel = json.getInt("battery_level");
-
-      String charging = json.getString("charging");
-      isCharging = charging.equals("charging");
-    }
-
-  } catch (Exception e) {
+    isCharging = !charging.equals("unconnected");
+  }
+  catch (Exception e) {
     println("Status read failed");
   }
 }
 
 
 // =======================================================
-// COMMANDS
+// COMMAND IDs
 // =======================================================
 
 final int CMD_CLEAN_ALL    = 1;
@@ -201,7 +201,6 @@ void execute(int cmd) {
       roomList = roomList.substring(0, roomList.length()-1);
 
       send("/set/clean_rooms?map_id=" + selectedMapId + "&rooms=" + roomList);
-
     } else {
       println("No rooms selected!");
     }
@@ -224,11 +223,11 @@ void execute(int cmd) {
     break;
 
   case CMD_SPEED_NORMAL:
-    send("/set/configurable_parameters?params=...");
+    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A12800%7D%7D%7D%7D%7D");
     break;
 
   case CMD_SPEED_HIGH:
-    send("/set/configurable_parameters?params=...");
+    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A20480%7D%7D%7D%7D%7D");
     break;
   }
 }
@@ -257,17 +256,23 @@ void send(final String path) {
 
   final String urlStr = BASE + path;
 
-  new Thread(() -> {
-    try {
-      HttpURLConnection conn =
-        (HttpURLConnection) new URL(urlStr).openConnection();
+  new Thread(new Runnable() {
+    public void run() {
+      try {
+        HttpURLConnection conn =
+          (HttpURLConnection) new URL(urlStr).openConnection();
 
-      conn.setRequestMethod("GET");
-      conn.getResponseCode();
-      conn.disconnect();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(4000);
+        conn.setReadTimeout(4000);
 
-    } catch (Exception e) {
-      e.printStackTrace();
+        conn.getResponseCode();
+        conn.disconnect();
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
     }
-  }).start();
+  }
+  ).start();
 }

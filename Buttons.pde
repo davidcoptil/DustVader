@@ -3,19 +3,27 @@ Button[] mapButtons;
 
 
 
-// original config
+// ================= USER BUTTON CONFIG (UNCHANGED) =================
+
 float BTN_WIDTH_RATIO  = 0.38;
-float BTN_HEIGHT_RATIO = 0.10;
+float BTN_HEIGHT_RATIO = 0.15;
 
 float BTN_GAP_X_RATIO = 1.15;
 float BTN_GAP_Y_RATIO = 1.35;
 
 float BTN_OFFSET_Y_RATIO = 0.6;
 
-// calculated
-float BTN_W, BTN_H_BTN;
-float BTN_SPACING_X, BTN_SPACING_Y;
-float BTN_START_X, BTN_START_Y;
+
+// ================= CALCULATED =================
+
+float BTN_W;
+float BTN_H_BTN;
+
+float BTN_SPACING_X;
+float BTN_SPACING_Y;
+
+float BTN_START_X;
+float BTN_START_Y;
 
 
 // =======================================================
@@ -23,7 +31,7 @@ float BTN_START_X, BTN_START_Y;
 // =======================================================
 
 void ButtonsInit(float infoY, float infoH,
-                 float btnY, float btnH) {
+  float btnY, float btnH) {
 
   INFO_Y = infoY;
   INFO_H = infoH;
@@ -50,13 +58,15 @@ void ButtonsInit(float infoY, float infoH,
 
 void ButtonsDraw() {
 
-  drawInfoBar();
 
   fill(30);
   rect(0, BTN_AREA_Y, width, BTN_AREA_H);
 
   for (Button b : buttons)
     b.draw();
+
+
+  drawInfoBar();
 }
 
 
@@ -67,22 +77,22 @@ void drawInfoBar() {
   fill(25);
   rect(0, INFO_Y, width, INFO_H);
 
-  // MAP BUTTONS
-  for (Button b : mapButtons) {
-
-    boolean selected =
-      (selectedMapId == 2 && b.cmd == CMD_MAP_HOUSE) ||
-      (selectedMapId == 55 && b.cmd == CMD_MAP_LIVING);
-
-    b.drawSpecial(selected ? color(120,180,255) : color(60,90,140));
+  if ( selectedMapId == 2) {
+    mapButtons[0].drawSpecial(color(60, 90, 140));
+    mapButtons[1].drawSpecial(color(60, 90, 140));
+  }
+  if ( selectedMapId == 55) {
+    mapButtons[0].drawSpecial(color(120, 180, 255));
+    mapButtons[1].drawSpecial(color(120, 180, 255));
   }
 
-  // BATTERY TEXT (NO EMOJIS)
   fill(255);
   textSize(28);
 
-  String status = isCharging ? "CHG" : "IDLE";
-  String txt = (batteryLevel >= 0 ? batteryLevel + "% " + status : "--");
+  String txt = (batteryLevel >= 0 ? batteryLevel + "%" : "--");
+  println(batteryLevel);
+  if (isCharging) txt += "+";
+  else txt += "-";
 
   text(txt, width * 0.85, INFO_Y + INFO_H/2);
 }
@@ -188,7 +198,6 @@ class Button {
   }
 
   void drawRect(float x, float y, float w, float h, int colr) {
-
     fill(colr);
     rect(x, y, w, h, 20);
 
@@ -209,6 +218,6 @@ class Button {
     float y = cy - BTN_H_BTN/2;
 
     return mx > x && mx < x + BTN_W &&
-           my > y && my < y + BTN_H_BTN;
+      my > y && my < y + BTN_H_BTN;
   }
 }
