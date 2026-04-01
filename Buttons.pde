@@ -1,10 +1,7 @@
 Button[] buttons;
 Button[] mapButtons;
 
-
-
 // ================= USER BUTTON CONFIG (UNCHANGED) =================
-
 float BTN_WIDTH_RATIO  = 0.38;
 float BTN_HEIGHT_RATIO = 0.15;
 
@@ -13,9 +10,7 @@ float BTN_GAP_Y_RATIO = 1.35;
 
 float BTN_OFFSET_Y_RATIO = 0.6;
 
-
 // ================= CALCULATED =================
-
 float BTN_W;
 float BTN_H_BTN;
 
@@ -25,14 +20,10 @@ float BTN_SPACING_Y;
 float BTN_START_X;
 float BTN_START_Y;
 
-
 // =======================================================
 // INIT
 // =======================================================
-
-void ButtonsInit(float infoY, float infoH,
-  float btnY, float btnH) {
-
+void ButtonsInit(float infoY, float infoH, float btnY, float btnH) {
   INFO_Y = infoY;
   INFO_H = infoH;
 
@@ -51,29 +42,19 @@ void ButtonsInit(float infoY, float infoH,
   createButtons();
 }
 
-
 // =======================================================
 // DRAW
 // =======================================================
-
 void ButtonsDraw() {
-
-
   fill(30);
   rect(0, BTN_AREA_Y, width, BTN_AREA_H);
 
-  for (Button b : buttons)
-    b.draw();
-
-
+  for (Button b : buttons) b.draw();
   drawInfoBar();
 }
 
-
 // ---------------- INFO BAR ----------------
-
 void drawInfoBar() {
-
   fill(25);
   rect(0, INFO_Y, width, INFO_H);
 
@@ -87,137 +68,83 @@ void drawInfoBar() {
 
   fill(255);
   textSize(28);
-
   String txt = (batteryLevel >= 0 ? batteryLevel + "%" : "--");
-  println(batteryLevel);
-  if (isCharging) txt += " + ";
-  else txt += " - ";
-
+  if (isCharging) txt += " + "; else txt += " - ";
   text(txt, width * 0.85, INFO_Y + INFO_H/2);
 }
-
 
 // =======================================================
 // INPUT
 // =======================================================
-
 boolean ButtonsHandleClick(float mx, float my) {
-
-  for (Button b : mapButtons)
-    if (b.hit(mx, my)) {
-      execute(b.cmd);
-      return true;
-    }
-
-  for (Button b : buttons)
-    if (b.hit(mx, my)) {
-      execute(b.cmd);
-      return true;
-    }
-
+  for (Button b : mapButtons) if (b.hit(mx, my)) { execute(b.cmd); return true; }
+  for (Button b : buttons) if (b.hit(mx, my)) { execute(b.cmd); return true; }
   return false;
 }
 
-
 // =======================================================
-// CREATE
+// CREATE (absolute XY+WH)
 // =======================================================
-
 void createButtons() {
-
   mapButtons = new Button[] {
-    new Button("HOUSE", 0.2, INFO_Y, 0.22, INFO_H, CMD_MAP_HOUSE),
-    new Button("LIVING", 0.45, INFO_Y, 0.22, INFO_H, CMD_MAP_LIVING)
+    new Button("HOUSE", 0.2 * width - (0.22*width)/2, INFO_Y, 0.22 * width, INFO_H, CMD_MAP_HOUSE),
+    new Button("LIVING", 0.45 * width - (0.22*width)/2, INFO_Y, 0.22 * width, INFO_H, CMD_MAP_LIVING)
   };
+
+  // Compute absolute positions from current grid layout
+  float bx0 = BTN_START_X - BTN_W/2;
+  float bx1 = BTN_START_X + BTN_SPACING_X - BTN_W/2;
+  float by0 = BTN_START_Y - BTN_H_BTN/2;
+  float by1 = BTN_START_Y + BTN_SPACING_Y - BTN_H_BTN/2;
+  float by2 = BTN_START_Y + BTN_SPACING_Y*2 - BTN_H_BTN/2;
+  float by3 = BTN_START_Y + BTN_SPACING_Y*3 - BTN_H_BTN/2;
+
+  // Split STOP button horizontally
+  float stopWidth = BTN_W / 2;
+  float stopHomeGap = 8;
 
   buttons = new Button[] {
+    new Button("CLEAN ALL",    bx0, by0, BTN_W, BTN_H_BTN, CMD_CLEAN_ALL),
+    new Button("CLEAN ROOMS",  bx1, by0, BTN_W, BTN_H_BTN, CMD_CLEAN_ROOMS),
 
-    new Button("CLEAN ALL", 0, 0, CMD_CLEAN_ALL),
-    new Button("CLEAN ROOMS", 1, 0, CMD_CLEAN_ROOMS),
+    new Button("STOP",          bx0, by1, stopWidth - stopHomeGap, BTN_H_BTN, CMD_STOP),
+    new Button("GO HOME",       bx0 + stopWidth + stopHomeGap, by1, stopWidth - stopHomeGap, BTN_H_BTN, CMD_GO_HOME),
+    new Button("CONTINUE",      bx1, by1, BTN_W, BTN_H_BTN, CMD_CONTINUE),
 
-    new Button("STOP", 0, 1, CMD_STOP),
-    new Button("CONTINUE", 1, 1, CMD_CONTINUE),
+    new Button("INTENSIVE",     bx0, by2, BTN_W, BTN_H_BTN, CMD_INTENSIVE),
+    new Button("SILENT",        bx1, by2, BTN_W, BTN_H_BTN, CMD_SILENT),
 
-    new Button("INTENSIVE", 0, 2, CMD_INTENSIVE),
-    new Button("SILENT", 1, 2, CMD_SILENT),
-
-    new Button("NORMAL SPEED", 0, 3, CMD_SPEED_NORMAL),
-    new Button("HIGH SPEED", 1, 3, CMD_SPEED_HIGH)
+    new Button("NORMAL SPEED",  bx0, by3, BTN_W, BTN_H_BTN, CMD_SPEED_NORMAL),
+    new Button("HIGH SPEED",    bx1, by3, BTN_W, BTN_H_BTN, CMD_SPEED_HIGH)
   };
 }
-
 
 // =======================================================
 // BUTTON CLASS
 // =======================================================
-
 class Button {
-
   String label;
   int col, row, cmd;
-
   float x, y, w, h;
-  boolean custom = false;
+  boolean custom = true; // always absolute now
 
-  Button(String l, int c, int r, int cmd) {
-    label = l;
-    col = c;
-    row = r;
-    this.cmd = cmd;
+  Button(String l, float x, float y, float w, float h, int cmd) {
+    label = l; this.cmd = cmd;
+    this.x = x; this.y = y; this.w = w; this.h = h;
   }
 
-  Button(String l, float cx, float y, float wRatio, float h, int cmd) {
-    label = l;
-    this.cmd = cmd;
+  void draw() { drawRect(x, y, w, h, color(80)); }
 
-    this.w = width * wRatio;
-    this.h = h;
-
-    this.x = cx * width - w/2;
-    this.y = y;
-
-    custom = true;
-  }
-
-  void draw() {
-
-    if (custom) {
-      drawRect(x, y, w, h, color(80));
-      return;
-    }
-
-    float cx = BTN_START_X + col * BTN_SPACING_X;
-    float cy = BTN_START_Y + row * BTN_SPACING_Y;
-
-    drawRect(cx - BTN_W/2, cy - BTN_H_BTN/2, BTN_W, BTN_H_BTN, color(70));
-  }
-
-  void drawSpecial(int colr) {
-    drawRect(x, y, w, h, colr);
-  }
+  void drawSpecial(int colr) { drawRect(x, y, w, h, colr); }
 
   void drawRect(float x, float y, float w, float h, int colr) {
     fill(colr);
     rect(x, y, w, h, 20);
-
     fill(255);
     textSize(24);
     textAlign(CENTER, CENTER);
     text(label, x + w/2, y + h/2);
   }
 
-  boolean hit(float mx, float my) {
-
-    if (custom)
-      return mx > x && mx < x + w && my > y && my < y + h;
-
-    float cx = BTN_START_X + col * BTN_SPACING_X;
-    float cy = BTN_START_Y + row * BTN_SPACING_Y;
-
-    float x = cx - BTN_W/2;
-    float y = cy - BTN_H_BTN/2;
-
-    return mx > x && mx < x + BTN_W &&
-      my > y && my < y + BTN_H_BTN;
-  }
+  boolean hit(float mx, float my) { return mx > x && mx < x + w && my > y && my < y + h; }
 }
