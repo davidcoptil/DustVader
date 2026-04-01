@@ -77,12 +77,11 @@ void drawInfoBar() {
   fill(25);
   rect(0, INFO_Y, width, INFO_H);
 
-  if ( selectedMapId == 2) {
-    mapButtons[0].drawSpecial(color(60, 90, 140));
-    mapButtons[1].drawSpecial(color(60, 90, 140));
-  }
-  if ( selectedMapId == 55) {
+  if (selectedMapId == 2) {
     mapButtons[0].drawSpecial(color(120, 180, 255));
+    mapButtons[1].drawSpecial(color(60, 90, 140));
+  } else if (selectedMapId == 55) {
+    mapButtons[0].drawSpecial(color(60, 90, 140));
     mapButtons[1].drawSpecial(color(120, 180, 255));
   }
 
@@ -91,8 +90,8 @@ void drawInfoBar() {
 
   String txt = (batteryLevel >= 0 ? batteryLevel + "%" : "--");
   println(batteryLevel);
-  if (isCharging) txt += "+";
-  else txt += "-";
+  if (isCharging) txt += " + ";
+  else txt += " - ";
 
   text(txt, width * 0.85, INFO_Y + INFO_H/2);
 }
@@ -203,6 +202,7 @@ class Button {
 
     fill(255);
     textSize(24);
+    textAlign(CENTER, CENTER);
     text(label, x + w/2, y + h/2);
   }
 

@@ -35,7 +35,8 @@ class AreasView {
         }
         areas.add(area);
       }
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       println("Areas load failed");
       e.printStackTrace();
     }
@@ -103,7 +104,7 @@ class AreasView {
       float x2 = map.sx(p2.x), y2 = map.sy(p2.y);
 
       if (((y1 > py) != (y2 > py)) &&
-          (px < (x2 - x1) * (py - y1) / (y2 - y1) + x1)) {
+        (px < (x2 - x1) * (py - y1) / (y2 - y1) + x1)) {
         crossings++;
       }
     }
@@ -117,5 +118,11 @@ class AreasView {
       if (a.selected) sel.add(a.id);
     }
     return sel;
+  }
+
+  void clearSelection() {
+    for (Area a : areas) {
+      a.selected = false;
+    }
   }
 }

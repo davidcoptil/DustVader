@@ -83,20 +83,13 @@ void draw() {
 
   background(15);
 
-  // ---- STATUS UPDATE (5s) ----
+  // ---- STATUS UPDATE ----
   if (millis() - lastStatus > 5000) {
     updateStatus();
     lastStatus = millis();
   }
 
-  ButtonsDraw();
-
-  // ---- MAP ----
-  pushMatrix();
-  pushStyle();
-
-  clip(0, 0, width, MAP_H);
-
+  // ---- MAP AREA ----
   map.draw(0, 0, width, MAP_H);
   areas.draw(map);
 
@@ -114,10 +107,14 @@ void draw() {
   robot.draw(map);
   cgm.draw(map);
 
-  popStyle();
-  popMatrix();
-}
+  // ---- HARD SEPARATOR (replaces clip) ----
+  noStroke();
+  fill(15);
+  rect(0, MAP_H, width, height - MAP_H);
 
+  // ---- UI (ALWAYS LAST) ----
+  ButtonsDraw();
+}
 
 // =======================================================
 // INPUT
@@ -198,14 +195,15 @@ void execute(int cmd) {
 
       String roomList = "";
       for (int r : selRooms) roomList += r + ",";
-      roomList = roomList.substring(0, roomList.length()-1);
+      roomList = roomList.substring(0, roomList.length() - 1);
 
-      send("/set/clean_rooms?map_id=" + selectedMapId + "&rooms=" + roomList);
+      // ✅ CORRECT ENDPOINT + PARAM
+      send("/set/clean_map?map_id=" + selectedMapId + "&area_ids=" + roomList);
+      areas.clearSelection();
     } else {
       println("No rooms selected!");
     }
     break;
-
   case CMD_STOP:
     send("/set/stop");
     break;
@@ -224,10 +222,14 @@ void execute(int cmd) {
 
   case CMD_SPEED_NORMAL:
     send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A12800%7D%7D%7D%7D%7D");
+    delay(500);
+    send("http://192.168.1.15:8080/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_ang_speed%22%3A24576%7D%7D%7D%7D%7D");
     break;
 
   case CMD_SPEED_HIGH:
     send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A20480%7D%7D%7D%7D%7D");
+    delay(500);
+    send("http://192.168.1.15:8080/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_ang_speed%22%3A28672%7D%7D%7D%7D%7D");
     break;
   }
 }

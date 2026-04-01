@@ -64,27 +64,20 @@ class MapView {
       }
 
       loaded = true;
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       println("Map load failed:");
       e.printStackTrace();
     }
   }
 
   // ---------- DRAW ENTRY POINT ----------
-  // Call THIS from your main draw()
   void draw(float x, float y, float w, float h) {
     if (!loaded) return;
-    
-    pushStyle();
-    pushMatrix();
-    clip((int)x, (int)y, (int)w, (int)h);
+
     computeTransform(x, y, w, h);
     render();
-    //noClip();
-    popMatrix();
-    popStyle();
   }
-
   // ---------- TRANSFORM ----------
   void computeTransform(float x, float y, float w, float h) {
 
@@ -108,8 +101,12 @@ class MapView {
   }
 
   // ---------- COORD TRANSFORM ----------
-  float sx(float wx) { return wx * scale + offX; }
-  float sy(float wy) { return -wy * scale + offY; }
+  float sx(float wx) {
+    return wx * scale + offX;
+  }
+  float sy(float wy) {
+    return -wy * scale + offY;
+  }
 
   // ---------- RENDER ----------
   void render() {
