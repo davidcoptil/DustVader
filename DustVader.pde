@@ -75,8 +75,14 @@ void draw() {
   map.draw(0, 0, width, MAP_H);
   areas.draw(map);
 
-  if (millis() - lastCGM > 1000) { cgm.update(); lastCGM = millis(); }
-  if (millis() - lastPose > 150) { robot.updateAsync(); lastPose = millis(); }
+  if (millis() - lastCGM > 1000) {
+    cgm.update();
+    lastCGM = millis();
+  }
+  if (millis() - lastPose > 150) {
+    robot.updateAsync();
+    lastPose = millis();
+  }
 
   robot.updateFrame();
   robot.draw(map);
@@ -87,6 +93,25 @@ void draw() {
   rect(0, MAP_H, width, height - MAP_H);
 
   ButtonsDraw();
+
+  // ---------------- INFO BAR ----------------
+
+
+  // display at the info bar location using the new function
+  drawInfo();
+}
+
+// =======================================================
+// DISPLAY INFO AT INFO BAR LOCATION
+// =======================================================
+void drawInfo() {
+  String infoText = (batteryLevel >= 0 ? batteryLevel + "%" : "--");
+  if (isCharging) infoText += " +";
+  else infoText += " -";
+  fill(color(255));
+  textSize(40);
+  textAlign(CENTER, CENTER);
+  text(infoText, width * 0.85, INFO_Y + INFO_H/2);
 }
 
 // =======================================================
@@ -108,7 +133,8 @@ void updateStatus() {
     batteryLevel = json.getInt("battery_level");
     String charging = json.getString("charging");
     isCharging = !charging.equals("unconnected");
-  } catch (Exception e) {
+  }
+  catch (Exception e) {
     println("Status read failed");
   }
 }
@@ -133,39 +159,59 @@ final int CMD_GO_HOME      = 200;
 // =======================================================
 void execute(int cmd) {
   switch (cmd) {
-    case CMD_MAP_HOUSE: selectedMapId = 2; resetMap(selectedMapId); break;
-    case CMD_MAP_LIVING: selectedMapId = 55; resetMap(selectedMapId); break;
+  case CMD_MAP_HOUSE:
+    selectedMapId = 2;
+    resetMap(selectedMapId);
+    break;
+  case CMD_MAP_LIVING:
+    selectedMapId = 55;
+    resetMap(selectedMapId);
+    break;
 
-    case CMD_CLEAN_ALL: send("/set/clean_map?map_id=" + selectedMapId + "&cleaning_parameter_set=3"); break;
-    
-    case CMD_CLEAN_ROOMS:
-      ArrayList<Integer> selRooms = areas.getSelectedRooms();
-      if (selRooms.size() > 0) {
-        String roomList = "";
-        for (int r : selRooms) roomList += r + ",";
-        roomList = roomList.substring(0, roomList.length() - 1);
-        send("/set/clean_map?map_id=" + selectedMapId + "&area_ids=" + roomList);
-        areas.clearSelection();
-      } else { println("No rooms selected!"); }
-      break;
+  case CMD_CLEAN_ALL:
+    send("/set/clean_map?map_id=" + selectedMapId + "&cleaning_parameter_set=3");
+    break;
 
-    case CMD_STOP: send("/set/stop"); break;
-    case CMD_GO_HOME: send("/set/go_home"); break;
-    case CMD_CONTINUE: send("/set/continue"); break;
-    case CMD_INTENSIVE: send("/set/switch_cleaning_parameter_set?cleaning_parameter_set=3"); break;
-    case CMD_SILENT: send("/set/switch_cleaning_parameter_set?cleaning_parameter_set=1"); break;
+  case CMD_CLEAN_ROOMS:
+    ArrayList<Integer> selRooms = areas.getSelectedRooms();
+    if (selRooms.size() > 0) {
+      String roomList = "";
+      for (int r : selRooms) roomList += r + ",";
+      roomList = roomList.substring(0, roomList.length() - 1);
+      send("/set/clean_map?map_id=" + selectedMapId + "&area_ids=" + roomList);
+      areas.clearSelection();
+    } else {
+      println("No rooms selected!");
+    }
+    break;
 
-    case CMD_SPEED_NORMAL:
-      send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A12800%7D%7D%7D%7D%7D");
-      delay(500);
-      send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_ang_speed%22%3A24576%7D%7D%7D%7D%7D");
-      break;
+  case CMD_STOP:
+    send("/set/stop");
+    break;
+  case CMD_GO_HOME:
+    send("/set/go_home");
+    break;
+  case CMD_CONTINUE:
+    send("/set/continue");
+    break;
+  case CMD_INTENSIVE:
+    send("/set/switch_cleaning_parameter_set?cleaning_parameter_set=3");
+    break;
+  case CMD_SILENT:
+    send("/set/switch_cleaning_parameter_set?cleaning_parameter_set=1");
+    break;
 
-    case CMD_SPEED_HIGH:
-      send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A20480%7D%7D%7D%7D%7D");
-      delay(500);
-      send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_ang_speed%22%3A28672%7D%7D%7D%7D%7D");
-      break;
+  case CMD_SPEED_NORMAL:
+    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A12800%7D%7D%7D%7D%7D");
+    delay(500);
+    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_ang_speed%22%3A24576%7D%7D%7D%7D%7D");
+    break;
+
+  case CMD_SPEED_HIGH:
+    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_trans_speed%22%3A20480%7D%7D%7D%7D%7D");
+    delay(500);
+    send("/set/configurable_parameters?params=%7B%22customer%22%3A%7B%22robot_capabilities%22%3A%7B%22speeds%22%3A%7B%22dry%22%3A%7B%22max_ang_speed%22%3A28672%7D%7D%7D%7D%7D");
+    break;
   }
 }
 
@@ -194,7 +240,11 @@ void send(final String path) {
         conn.setReadTimeout(4000);
         conn.getResponseCode();
         conn.disconnect();
-      } catch (Exception e) { e.printStackTrace(); }
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
     }
-  }).start();
+  }
+  ).start();
 }

@@ -65,20 +65,22 @@ void drawInfoBar() {
     mapButtons[0].drawSpecial(color(60, 90, 140));
     mapButtons[1].drawSpecial(color(120, 180, 255));
   }
-
-  fill(255);
-  textSize(28);
-  String txt = (batteryLevel >= 0 ? batteryLevel + "%" : "--");
-  if (isCharging) txt += " + "; else txt += " - ";
-  text(txt, width * 0.85, INFO_Y + INFO_H/2);
 }
+
+
 
 // =======================================================
 // INPUT
 // =======================================================
 boolean ButtonsHandleClick(float mx, float my) {
-  for (Button b : mapButtons) if (b.hit(mx, my)) { execute(b.cmd); return true; }
-  for (Button b : buttons) if (b.hit(mx, my)) { execute(b.cmd); return true; }
+  for (Button b : mapButtons) if (b.hit(mx, my)) {
+    execute(b.cmd);
+    return true;
+  }
+  for (Button b : buttons) if (b.hit(mx, my)) {
+    execute(b.cmd);
+    return true;
+  }
   return false;
 }
 
@@ -104,18 +106,18 @@ void createButtons() {
   float stopHomeGap = 8;
 
   buttons = new Button[] {
-    new Button("CLEAN ALL",    bx0, by0, BTN_W, BTN_H_BTN, CMD_CLEAN_ALL),
-    new Button("CLEAN ROOMS",  bx1, by0, BTN_W, BTN_H_BTN, CMD_CLEAN_ROOMS),
+    new Button("CLEAN ALL", bx0, by0, BTN_W, BTN_H_BTN, CMD_CLEAN_ALL),
+    new Button("CLEAN ROOMS", bx1, by0, BTN_W, BTN_H_BTN, CMD_CLEAN_ROOMS),
 
-    new Button("STOP",          bx0, by1, stopWidth - stopHomeGap, BTN_H_BTN, CMD_STOP),
-    new Button("GO HOME",       bx0 + stopWidth + stopHomeGap, by1, stopWidth - stopHomeGap, BTN_H_BTN, CMD_GO_HOME),
-    new Button("CONTINUE",      bx1, by1, BTN_W, BTN_H_BTN, CMD_CONTINUE),
+    new Button("STOP", bx0, by1, stopWidth - stopHomeGap, BTN_H_BTN, CMD_STOP),
+    new Button("GO HOME", bx0 + stopWidth + stopHomeGap, by1, stopWidth - stopHomeGap, BTN_H_BTN, CMD_GO_HOME),
+    new Button("CONTINUE", bx1, by1, BTN_W, BTN_H_BTN, CMD_CONTINUE),
 
-    new Button("INTENSIVE",     bx0, by2, BTN_W, BTN_H_BTN, CMD_INTENSIVE),
-    new Button("SILENT",        bx1, by2, BTN_W, BTN_H_BTN, CMD_SILENT),
+    new Button("INTENSIVE", bx0, by2, BTN_W, BTN_H_BTN, CMD_INTENSIVE),
+    new Button("SILENT", bx1, by2, BTN_W, BTN_H_BTN, CMD_SILENT),
 
-    new Button("NORMAL SPEED",  bx0, by3, BTN_W, BTN_H_BTN, CMD_SPEED_NORMAL),
-    new Button("HIGH SPEED",    bx1, by3, BTN_W, BTN_H_BTN, CMD_SPEED_HIGH)
+    new Button("NORMAL SPEED", bx0, by3, BTN_W, BTN_H_BTN, CMD_SPEED_NORMAL),
+    new Button("HIGH SPEED", bx1, by3, BTN_W, BTN_H_BTN, CMD_SPEED_HIGH)
   };
 }
 
@@ -129,13 +131,21 @@ class Button {
   boolean custom = true; // always absolute now
 
   Button(String l, float x, float y, float w, float h, int cmd) {
-    label = l; this.cmd = cmd;
-    this.x = x; this.y = y; this.w = w; this.h = h;
+    label = l;
+    this.cmd = cmd;
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
   }
 
-  void draw() { drawRect(x, y, w, h, color(80)); }
+  void draw() {
+    drawRect(x, y, w, h, color(80));
+  }
 
-  void drawSpecial(int colr) { drawRect(x, y, w, h, colr); }
+  void drawSpecial(int colr) {
+    drawRect(x, y, w, h, colr);
+  }
 
   void drawRect(float x, float y, float w, float h, int colr) {
     fill(colr);
@@ -146,5 +156,7 @@ class Button {
     text(label, x + w/2, y + h/2);
   }
 
-  boolean hit(float mx, float my) { return mx > x && mx < x + w && my > y && my < y + h; }
+  boolean hit(float mx, float my) {
+    return mx > x && mx < x + w && my > y && my < y + h;
+  }
 }
