@@ -1,10 +1,13 @@
 // ================= MAP VIEW MODULE =================
-// Fetches + renders tile_map into an arbitrary rectangle
+// Processing-side recreation of the original app's map stack:
+// 1) map background polygon
+// 2) tile / feature lines
+// 3) areas and labels drawn by AreasView
+// 4) robot / cleaning overlays drawn elsewhere
 // ===================================================
 
 class MapView {
 
-  // ---------- DATA ----------
   class Line {
     float x1, y1, x2, y2;
   }
@@ -13,30 +16,36 @@ class MapView {
   ArrayList<PVector> outline = new ArrayList<PVector>();
   PVector dockPos = null;
 
-  // ---------- TRANSFORM ----------
-  float scale;
-  float offX, offY;
+  float scale = 1;
+  float offX = 0;
+  float offY = 0;
+
+  float viewX = 0;
+  float viewY = 0;
+  float viewW = 0;
+  float viewH = 0;
+
+  float minX = 0;
+  float minY = 0;
+  float maxX = 1;
+  float maxY = 1;
 
   boolean loaded = false;
   int mapId;
   String baseUrl;
 
-  // ---------- CONSTRUCTOR ----------
   MapView(String baseUrl, int mapId) {
     this.baseUrl = baseUrl;
     this.mapId = mapId;
     load();
   }
 
-  // ---------- LOAD TILE MAP ----------
   void load() {
     try {
       String url = baseUrl + "/get/tile_map?map_id=" + mapId;
       JSONObject root = parseJSONObject(join(loadStrings(url), ""));
-
       JSONObject map = root.getJSONObject("map");
 
-      // Walls
       walls.clear();
       JSONArray lines = map.getJSONArray("lines");
       for (int i = 0; i < lines.size(); i++) {
@@ -49,7 +58,6 @@ class MapView {
         walls.add(ln);
       }
 
-      // Outline
       outline.clear();
       JSONArray ol = root.getJSONArray("outline");
       for (int i = 0; i < ol.size(); i++) {
@@ -57,80 +65,175 @@ class MapView {
         outline.add(new PVector(p.getFloat("x"), p.getFloat("y")));
       }
 
-      // Dock
-      JSONObject dock = map.getJSONObject("docking_pose");
-      if (dock.getBoolean("valid")) {
-        dockPos = new PVector(dock.getFloat("x"), dock.getFloat("y"));
+      dockPos = null;
+      if (map.hasKey("docking_pose")) {
+        JSONObject dock = map.getJSONObject("docking_pose");
+        if (dock.getBoolean("valid")) {
+          dockPos = new PVector(dock.getFloat("x"), dock.getFloat("y"));
+        }
       }
 
+      updateBounds();
       loaded = true;
     }
     catch (Exception e) {
       println("Map load failed:");
       e.printStackTrace();
+      loaded = false;
     }
   }
 
-  // ---------- DRAW ENTRY POINT ----------
   void draw(float x, float y, float w, float h) {
     if (!loaded) return;
+
+    viewX = x;
+    viewY = y;
+    viewW = w;
+    viewH = h;
 
     computeTransform(x, y, w, h);
     render();
   }
-  // ---------- TRANSFORM ----------
-  void computeTransform(float x, float y, float w, float h) {
 
-    float minX = 1e9, minY = 1e9;
-    float maxX = -1e9, maxY = -1e9;
+  void updateBounds() {
+    minX = 1e9;
+    minY = 1e9;
+    maxX = -1e9;
+    maxY = -1e9;
 
     for (PVector p : outline) {
-      minX = min(minX, p.x);
-      minY = min(minY, p.y);
-      maxX = max(maxX, p.x);
-      maxY = max(maxY, p.y);
+      includePoint(p.x, p.y);
     }
 
-    float mapW = maxX - minX;
-    float mapH = maxY - minY;
+    for (Line l : walls) {
+      includePoint(l.x1, l.y1);
+      includePoint(l.x2, l.y2);
+    }
 
-    scale = min(w / mapW, h / mapH) * 0.95;
+    if (dockPos != null) {
+      includePoint(dockPos.x, dockPos.y);
+    }
 
-    offX = x + w/2 - (minX + mapW/2) * scale;
-    offY = y + h/2 + (minY + mapH/2) * scale;
+    if (minX > maxX || minY > maxY) {
+      minX = 0;
+      minY = 0;
+      maxX = 1;
+      maxY = 1;
+    }
+
+    if (abs(maxX - minX) < 1) {
+      maxX += 0.5;
+      minX -= 0.5;
+    }
+    if (abs(maxY - minY) < 1) {
+      maxY += 0.5;
+      minY -= 0.5;
+    }
   }
 
-  // ---------- COORD TRANSFORM ----------
+  void includePoint(float x, float y) {
+    minX = min(minX, x);
+    minY = min(minY, y);
+    maxX = max(maxX, x);
+    maxY = max(maxY, y);
+  }
+
+  void computeTransform(float x, float y, float w, float h) {
+    float mapW = max(1, maxX - minX);
+    float mapH = max(1, maxY - minY);
+
+    float pad = 0.08;
+    float usableW = max(1, w * (1.0 - pad * 2.0));
+    float usableH = max(1, h * (1.0 - pad * 2.0));
+
+    scale = min(usableW / mapW, usableH / mapH);
+
+    float centerX = (minX + maxX) * 0.5;
+    float centerY = (minY + maxY) * 0.5;
+
+    offX = x + w * 0.5 - centerX * scale;
+    offY = y + h * 0.5 + centerY * scale;
+  }
+
   float sx(float wx) {
     return wx * scale + offX;
   }
+
   float sy(float wy) {
     return -wy * scale + offY;
   }
 
-  // ---------- RENDER ----------
+  float worldStroke(float px) {
+    return max(1.0, px * max(0.65, scale / 55.0));
+  }
+
   void render() {
+    pushStyle();
 
-    // Outline
-    fill(35);
-    stroke(80);
-    strokeWeight(2);
+    noStroke();
+    fill(12, 15, 20);
+    rect(viewX, viewY, viewW, viewH);
+
+    drawTileBackground();
+    drawTileWalls();
+    drawOutline();
+    drawDock();
+
+    popStyle();
+  }
+
+  void drawTileBackground() {
+    if (outline.size() < 3) return;
+
+    noStroke();
+    fill(42, 47, 56);
     beginShape();
-    for (PVector p : outline)
+    for (PVector p : outline) {
       vertex(sx(p.x), sy(p.y));
-    endShape(CLOSE);
-
-    // Walls
-    stroke(230);
-    strokeWeight(3);
-    for (Line l : walls)
-      line(sx(l.x1), sy(l.y1), sx(l.x2), sy(l.y2));
-
-    // Dock
-    if (dockPos != null) {
-      noStroke();
-      fill(0, 200, 0);
-      ellipse(sx(dockPos.x), sy(dockPos.y), 14, 14);
     }
+    endShape(CLOSE);
+  }
+
+  void drawTileWalls() {
+    if (walls.isEmpty()) return;
+
+    stroke(230, 233, 238);
+    strokeWeight(worldStroke(3.0));
+    strokeCap(ROUND);
+
+    for (Line l : walls) {
+      line(sx(l.x1), sy(l.y1), sx(l.x2), sy(l.y2));
+    }
+  }
+
+  void drawOutline() {
+    if (outline.size() < 2) return;
+
+    noFill();
+    stroke(120, 130, 146, 180);
+    strokeWeight(worldStroke(1.5));
+    strokeJoin(ROUND);
+
+    beginShape();
+    for (PVector p : outline) {
+      vertex(sx(p.x), sy(p.y));
+    }
+    endShape(CLOSE);
+  }
+
+  void drawDock() {
+    if (dockPos == null) return;
+
+    float x = sx(dockPos.x);
+    float y = sy(dockPos.y);
+    float outer = max(12, worldStroke(12));
+    float inner = outer * 0.52;
+
+    noStroke();
+    fill(22, 29, 36, 220);
+    ellipse(x, y, outer, outer);
+
+    fill(84, 214, 136);
+    ellipse(x, y, inner, inner);
   }
 }

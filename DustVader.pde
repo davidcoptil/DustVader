@@ -35,7 +35,6 @@ float BTN_AREA_HEIGHT_RATIO = 0.5;
 float MAP_Y, MAP_H;
 float INFO_Y, INFO_H;
 float BTN_AREA_Y, BTN_AREA_H;
-
 // =======================================================
 // SETUP
 // =======================================================
